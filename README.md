@@ -19,7 +19,7 @@ To cite DLS GUI in publications please use:
 DLS GUI Preview:  
 <img src="https://user-images.githubusercontent.com/24664516/217431803-7c9c7a38-d4ad-4ffe-b928-2503e9d097bb.png" alt="GUI_Mac" width=50% height=50%/>
 
-Installation
+Installation and Compilation
 ------------
 
 To compile the DLS GUI you will need to install [Python 3](https://www.python.org/downloads/). 
@@ -41,9 +41,6 @@ This package requires `numpy`, `scipy` `matplotlib`, `cz-freeze`, `statsmodels`,
 
 >`pip install -r requirements.txt`
 
-Compile Executable GUI
-------------
-
 We are now ready to compile the GUI. In the home directory, execute the following command:
 >`python setup.py build_exe --excludes=matplotlib.tests,numpy.random._examples --no-compress` (Windows)
 
@@ -55,6 +52,8 @@ Using the GUI
 -------
 Detailed descriptions of the features along with instructions for data loading, parameter adjustment, analysis, algorithms comparison, and exporting are provided in the attached manual _DLS GUI Manual.pdf_.  
 <img src="https://user-images.githubusercontent.com/24664516/217431770-9b091b5b-6803-4afb-90e6-5af40e07dbb4.JPG" alt="Manual_Contents" width=40% height=40%/>
+
+We have also included an sample data file _TestDataFile.txt_ for testing/demonstration purposes.
 
 License
 -------
