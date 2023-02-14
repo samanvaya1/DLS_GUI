@@ -39,7 +39,7 @@ To activate the virtual environment:
 
 >`source myenv/bin/activate` (Unix/Mac)
 
-This package requires `numpy`, `scipy` `matplotlib`, `cz-freeze`, `statsmodels`, and `tkinter` packages. Install these by invoking the `requirements.txt` file provided. Navigate to home directory and execute the following command:
+This package requires `numpy`, `scipy` `matplotlib`, `cx-freeze`, `statsmodels`, and `tkinter` packages. Install these by invoking the `requirements.txt` file provided. Navigate to home directory and execute the following command:
 
 >`pip install -r requirements.txt`
 
