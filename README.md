@@ -19,7 +19,7 @@ To cite DLS GUI in publications please use:
 > Salazar M, Srivastav H, Srivastava A, Srivastava S. A User-friendly Graphical User Interface for Dynamic Light Scattering Data Analysis. ChemRxiv. Cambridge: Cambridge Open Engage; 2023 https://doi.org/10.26434/chemrxiv-2023-v9kt4  
 
 DLS GUI Preview:  
-<img src="https://user-images.githubusercontent.com/24664516/217431803-7c9c7a38-d4ad-4ffe-b928-2503e9d097bb.png" alt="GUI_Mac" width=50% height=50%/>
+<img src="https://user-images.githubusercontent.com/24664516/240789627-b0fefd48-34e2-4d19-855d-383978a77883.png" alt="GUI_Mac" width=50% height=50%/>
 
 Installation and Compilation
 ------------
