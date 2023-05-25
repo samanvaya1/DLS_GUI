@@ -50,23 +50,32 @@ import DLS_NNLS
 #Initialize the tau column and g2 column of the data
 global tau
 global g2
+global TimeChange
 tau = []
 g2 = []
+TimeChange = False
+#Function that checks if it is normalized and if it is not it normalizes the data
 
 #Function that checks if it is normalized and if it is not it normalizes the data
 #If normalized = 1 If not normalized = 0
 def Normalize_Check(tauLC,g2LC,B,beta):
     #Considered normalize if the baseline is less than 0.1
-    if (B < 0.1):
-        g2Norm = g2LC
-        Normalized = 1
+    if (select_dtype.get() == "g1\u00b2"):
 
-    #If the data is not normalized use: C(tau) = (G2(tau)-B)/B to normalize the data
-    else:
+        #Double Check to Ensure System is normalized with baseline at zero
         g2Norm = np.subtract(np.divide(g2LC,B),1)
         beta = beta/B-1
+        g1_squared = np.divide(g2Norm, beta)
         Normalized = 0
-    return g2Norm , Normalized,beta
+        print("Works")
+
+    #If the data is gw use: C(tau) = (G2(tau)-1-B)/B to normalize the data and account for (g2-1)/beta
+    else:
+        g2Norm = np.subtract(np.divide(np.subtract(g2LC,1),B),1)
+        beta = beta/B-1
+        g1_squared = np.divide(g2Norm, beta)
+        Normalized = 0
+    return g2Norm , Normalized,beta,g1_squared
 
 #Generate a modified boltzman distibution based on the coefficiients provided based of a Gram-Charlier expansion on a Gaussian distribution found on github
 def Distrubution(mean,sigma,skew,kurt,min,max):
@@ -95,8 +104,8 @@ def Distrubution(mean,sigma,skew,kurt,min,max):
 #Load data and get the plots G2 plot up and running
 def LoadData():
     #Initialize global varibles
-    global filename,Figure_g2, count_update,tau,g2,beta,Plot_g2
-
+    global filename,Figure_g2, count_update,tau,g2,beta,Plot_g2,TimeChange
+    #Case of a time change
     #Consider the case already a plot need to fix the axes of the plot
     if(count_update > 0):
         #Remove all the current information on the G2 plot
@@ -118,12 +127,15 @@ def LoadData():
         Plot_g2.legend()
         Plot_g2.plot(tau, g2, color='red')
 
-    #Ask user for the file
-    root.filename = filedialog.askopenfilename(initialdir= "/" , title = "Select A File",filetypes=(("txt files","*.txt"),("all files","*.*")))
-    filename = root.filename
+    #Check If Switching Time
+    if(TimeChange):
+        TimeChange = False
 
-    #Check if a file is selected 
-    if(filename != ""):
+    else:#Ask user for the file
+        root.filename = filedialog.askopenfilename(initialdir= "/" , title = "Select A File",filetypes=(("txt files","*.txt"),("all files","*.*")))
+        filename = root.filename
+    #Check if a file is selected
+    if(filename != "" ):
         File = 1
         #label_filename = Label(root,text = str(filename))
         #label_filename.place(height=30, width=100, x=110, y=0)
@@ -132,9 +144,14 @@ def LoadData():
         file = open(filename,"r")
         file_data = np.loadtxt(filename,usecols=(0,1))
 
+        if(select_time_type.get() == "s"):
+            TimeFactor = 1
+        else:
+            TimeFactor = 10**(-6)
+
         #Import the data into the global vectors preallocated
-        tau = file_data[:,0]*10**(-6)
-        g2 = file_data[:,1]+1
+        tau = file_data[:,0]*TimeFactor
+        g2 = file_data[:,1]
         file.close()
         #Find some default taus for the baseline calculation ,betas
         length = len(tau)
@@ -183,6 +200,11 @@ def MultiAngle():
         Tau_Multi = dict()
         count = 0
         Num = str(count)
+        Time = Drop_time_type.get()
+        if(Time == "s"):
+            TimeFactor = 1
+        else:
+            TimeFactor = 10**(-6)
 
         #Parameters for placement
         h=20; w =200; x1 = 140 ; y1 = 0;
@@ -200,7 +222,7 @@ def MultiAngle():
             File_Names_Long.append(path+"/"+filesMulti[index])
             file_data = np.loadtxt(file, usecols=(0, 1))
             file.close()
-            Tau_Multi[Num] = file_data[:, 0] * 10 ** (-6)
+            Tau_Multi[Num] = file_data[:, 0] * TimeFactor
             G2_Multi[Num] = file_data[:, 1]
             Entry_FileNames = Entry(AngleWindow)
             Entry_FileNames.place(height=h, width=w, x=x1, y=y1)
@@ -269,8 +291,8 @@ def MultiAngle():
                 B = B + g2_holder[length-2-index]
             B = B/20
             beta = (g2_holder[0] + g2_holder[1])/2
-            g2Norm, normal, beta = Normalize_Check(tau_holder, g2_holder, B, beta)
-            g1_squared = np.divide(g2Norm, beta)
+            g2Norm, normal, beta, g1_squared = Normalize_Check(tau_holder, g2_holder, B, beta)
+            #g1_squared = g2Norm#np.divide(g2Norm, beta)
             n_pts = int(Entry_points.get())
             initialGuess  = [1,1,1,1]
             Params1, Fit = DLS_quartic_fit.DLS_quartic_fit(tau_holder, g2Norm, B, beta,initialGuess)
@@ -309,7 +331,7 @@ def MultiAngle():
                 B = B + g2_holder[length - 2 - index]
             B = B / 20
             beta = (g2_holder[0] + g2_holder[1]) / 2
-            g2Norm, normal, beta = Normalize_Check(tau_holder, g2_holder, B, beta)
+            g2Norm, normal, beta,g1_squared = Normalize_Check(tau_holder, g2_holder, B, beta)
             n_pts = int(Entry_points.get())
             initialGuess  = [1,1,1,1]
             Params1, Fit = DLS_quartic_fit.DLS_quartic_fit(tau_holder, g2Norm, B, beta,initialGuess)
@@ -339,24 +361,29 @@ def MultiAngle():
             B_holder = B_holder/10
 
             # Check if the data is linearized
-            g2Norm_holder, normal, beta_holder = Normalize_Check(tau_holder, g2_holder, B_holder, beta_holder)
+            g2Norm_holder, normal, beta_holder,g1_squared = Normalize_Check(tau_holder, g2_holder, B_holder, beta_holder)
             # Use the selected data method
             if (select_methods.get() == "Linear Fit"):
+                g2Norm_holder = np.multiply(g2Norm_holder, beta_holder)
+
                 Fit_data, Fit_Param = DLS_linear_fit.DLS_linear_fit(tau_holder, g2Norm_holder, B_holder, beta_holder)
                 Diffusive_Coef = Fit_Param[0] / (np.square(q))
                 color = '#00' + str(index) + '000'
                 label = 'Data Set ' + str(index)
             elif (select_methods.get() == "Quad Fit"):
+                g2Norm_holder = np.multiply(g2Norm_holder, beta_holder)
                 Fit_Param, Fit_data = DLS_quad_fit.DLS_quad_fit(tau_holder, g2Norm_holder, B_holder, beta_holder, initialGuess)
                 initialGuess = Fit_Param
             elif (select_methods.get() == 'Cubic Fit'):
+                g2Norm_holder = np.multiply(g2Norm_holder, beta_holder)
                 Fit_Param, Fit_data = DLS_cubic_fit.DLS_cubic_fit(tau_holder, g2Norm_holder, B_holder, beta_holder, initialGuess)
                 initialGuess = Fit_Param
             elif (select_methods.get() == 'Quartic Fit'):
+                g2Norm_holder = np.multiply(g2Norm_holder, beta_holder)
                 Fit_Param, Fit_data = DLS_quartic_fit.DLS_quartic_fit(tau_holder, g2Norm_holder, B_holder, beta_holder, initialGuess)
                 initialGuess = Fit_Param
             elif (select_methods.get() == 'Contin'or select_methods.get()=="Choose..."):
-                g1_squared_holder = np.divide(g2Norm_holder, beta_holder)
+                g1_squared_holder = g2Norm_holder
                 reg_param = float(Entry_regularization.get())
                 n_pts = int(Entry_points.get())
                 if (select_dist_type.get() == 'Logarithmic'):
@@ -374,7 +401,7 @@ def MultiAngle():
                 color = '#00' + str(index) + '000'
                 label = 'Data Set ' + str(index)
             elif (select_methods.get() == "NNLS"):
-                g1_squared_holder = np.divide(g2Norm_holder, beta_holder)
+                g1_squared_holder = g2Norm_holder
                 reg_param = 0
                 n_pts = int(Entry_points.get())
                 if (select_dist_type.get() == 'Logarithmic'):
@@ -399,9 +426,9 @@ def MultiAngle():
                 gamma_prob = x
 
             elif (select_methods.get() == "REPES"):
-                g1_squared_holder = np.divide(g2Norm_holder, beta_holder)
+                g1_squared_holder = g2Norm_holder
                 g1_squared_holder = [0 if i < 0 else i for i in g1_squared_holder]
-                g1 = np.sqrt(g1_squared_holder)
+                g1 = g1_squared_holder#np.sqrt(g1_squared_holder)
                 reg_param = float(Entry_regularization.get())
                 n_pts = int(Entry_points.get())
                 if (select_dist_type.get() == 'Logarithmic'):
@@ -424,7 +451,7 @@ def MultiAngle():
                 gamma_prob = x
 
             elif (select_methods.get() == "DYNALS"):
-                g1_squared = np.divide(g2Norm_holder, beta_holder)
+                g1_squared = g2Norm_holder
                 g1_squared = [0 if i < 0 else i for i in g1_squared]
                 g1 = np.sqrt(g1_squared)
                 n_pts = int(Entry_points.get())
@@ -577,7 +604,8 @@ def LCurve():
         B = B / index
 
         #Get an average from the Cumulant expansions incase the user did not already specify a size range
-        g2Norm, normal, beta = Normalize_Check(tau, g2, B, beta)
+        g2Norm, normal, beta,g1_squared = Normalize_Check(tau, g2, B, beta)
+        g2Norm = np.multiply(g2Norm,beta)
         Params1, Fit = DLS_linear_fit.DLS_linear_fit(tau, g2, B, beta)
         initialGuess = [Params1[0], 1]
         OldParams, OldData = DLS_quad_fit.DLS_quad_fit(tau, g2, B, beta, initialGuess)
@@ -606,7 +634,7 @@ def LCurve():
             Entry_max.insert(0, str(float('%.3g' % r_max)))
 
         #Initialize the size range for the regularization methods
-        g1_squared = np.divide(g2Norm, beta)
+        g1_squared = g2Norm
         n_pts = int(Entry_points.get())
         r_min = float(Entry_min.get())
         r_max = float(Entry_max.get())
@@ -750,6 +778,8 @@ def LCurve():
         Export_L_Curve(alpha_dist, res_square, x_square)
 
 #When asked to run the system will save all the input data as a global variable
+
+#When asked to run the system will save all the input data as a global variable
 def Run():
     #Bring in the global variable
     global g2, tau, tau_high , tau_low,beta
@@ -803,7 +833,8 @@ def Run():
     q = (4*np.pi*refractive/wavelength)*np.sin(np.deg2rad(scattering/2))
 
     #Check if the data is linearized
-    g2Norm,normal,beta = Normalize_Check(tau,g2,B,beta)
+    g2Norm,normal,beta,g1_squared = Normalize_Check(tau,g2,B,beta)
+
 
     #Use the selected data method
     if(select_methods.get()=="Linear Fit"):
@@ -904,7 +935,7 @@ def Run():
         Plot_Prob(r_dist, gamma_prob, color,label)
     #If the Algorithuim desired is CONTIN or NNLS (alpha = 0)
     elif(select_methods.get()=="Contin" or select_methods.get()=="NNLS"):
-        g1_squared = np.divide(g2Norm,beta)
+        #g1_squared = np.divide(g2Norm,beta)
         reg_param = float(Entry_regularization.get())
         n_pts = int(Entry_points.get())
         r_min = float(Entry_min.get())
@@ -935,9 +966,9 @@ def Run():
         Plot_Prob(r_dist, x, color,label)
     #If REPES is sleceted
     elif(select_methods.get()=="REPES"):
-        g1_squared = np.divide(g2Norm,beta)
+        #g1_squared = np.divide(g2Norm,beta)
         g1_squared = [0 if i<0 else i for i in g1_squared]
-        g1 = np.sqrt(g1_squared)
+        g1 = g1_squared #np.sqrt(g1_squared)
         reg_param = float(Entry_regularization.get())
         n_pts = int(Entry_points.get())
         r_min = float(Entry_min.get())
@@ -952,13 +983,13 @@ def Run():
         a0 = np.ones(len(Tau))
         a0 = np.divide(a0, np.sum(a0))
         Fit_data,gamma,x = DLS_REPES.DLS_REPES(tau,g1,Tau,reg_param,a0)
-        Fit_data = np.multiply(np.square(Fit_data),beta)
+        Fit_data = np.multiply((Fit_data),beta)
         color = 'orangered'
         label = 'REPES'
         Plot_Prob(r_dist, x, color,label)
     #If DYNALS is sleceted
     elif(select_methods.get()=="DYNALS"):
-        g1_squared = np.divide(g2Norm,beta)
+        #g1_squared = np.divide(g2Norm,beta)
         g1_squared = [0 if i<0 else i for i in g1_squared]
         g1 = np.sqrt(g1_squared)
         n_pts = int(Entry_points.get())
@@ -1042,7 +1073,7 @@ def Drop_Fun(Input):
         q = (4 * np.pi * refractive / wavelength) * np.sin(np.deg2rad(scattering / 2))
 
         # Check if the data is linearized
-        g2Norm, normal, beta = Normalize_Check(tau, g2, B, beta)
+        g2Norm, normal, beta,g1_squared = Normalize_Check(tau, g2, B, beta)
         # Initial guess
         Params1, Fit = DLS_linear_fit.DLS_linear_fit(tau, g2, B, beta)
         initialGuess = [Params1[0], 1]
@@ -1216,12 +1247,19 @@ def Plot_G2(xdata,ydata,color,labels):
 
     Plot_g2.plot(xdata, ydata, color,label = labels,fillstyle = 'none')
     Plot_g2.legend(loc = 'lower left',frameon=True)
+    Plot_g2.autoscale()
+
+    #Set up the rescaling of the y-axis
+    minX  = min(tau)*0.95
+    maxX  = max(tau)*1.05
+    Plot_g2.set_xlim([minX , maxX])
 
     #Set up the rescaling of the y-axis
     if(len(g2) != 0):
         minY  = min(g2)*0.996
         maxY  = max(g2)*1.004
         Plot_g2.set_ylim([minY , maxY])
+
     canvas_g2 = FigureCanvasTkAgg(Figure_g2, root)
     canvas_g2.get_tk_widget().place(height=400, width=500, x=510, y=50)
 
@@ -1386,8 +1424,11 @@ def ExportParams():
     #File Name
     file = file.replace(".txt","_FitParam.txt")
     length = len(Fit_Param)
+    ParamPop = ''
+
     for index in range(4-length):
         Fit_Param = np.append(Fit_Param,0)
+
 
     #Three cases equal length, tau larger and R-size larger
     with open(os.path.join(path, file), 'w') as fp:
@@ -1397,6 +1438,21 @@ def ExportParams():
 
     fp.close
 
+    #ParamPop = ParamPop + "Fit Parameters for Gamma Distribution \n"
+    ParamPop = 'Fit Parameters for Gamma Distribution \n'
+    ParamPop = ParamPop + " |Mean        |Stand. Dev|Skew        |Kurt"
+    ParamPop = ParamPop + "\n |" + str(float('%.3g' % Fit_Param[0])) + " " * (12 - len(str(float('%.3g' % Fit_Param[0]))))+"|" + str(float('%.3g' % np.sqrt(Fit_Param[1]))) + " " * (15 - len(str(float('%.3g' % np.sqrt(Fit_Param[1])))))+"|" + str(float('%.3g' % Fit_Param[2]**(1/3))) + " " * (15 - len(str(float('%.3g' % Fit_Param[2]**(1/3)))))+"|" + str(float('%.3g' % Fit_Param[3]**(1/3))) + " " * (14 - len(str(float('%.3g' % Fit_Param[3]**(1/3)))))
+
+    #Create a Window With Parameters
+    # Create a new window that will pop up with L-curve information
+    ParamTop = Toplevel()
+    # Top.protocol("WM_DELETE_WINDOW", on_closing_Top)
+    ParamTop.title("Fit Parameters")
+    ParamTop.geometry("500x60")  # (x,y)
+    # Display optimal value
+    ParamPop = str(ParamPop)
+    Label_opt = Label(ParamTop, text=ParamPop , justify = 'left')
+    Label_opt.place(x=0, y=0, width=280, height=60)  # place(height=20,width=200, x=200, y=600)
 
     return
 
@@ -1422,6 +1478,14 @@ def handle_wait_Beta(event):
 def DistTypeChanges(Input):
     Clear()
     return
+#Function to clear the inputs when the plot type is changed
+def TimeTypeChanges(Input):
+    global TimeChange
+    TimeChange = True
+    LoadData()
+    TimeChange = False
+    return
+
 
 #have counter for update
 global count_update
@@ -1430,13 +1494,30 @@ count_update=0
 #Set Up for the Inputs of the system
 #Set up for the load data button
 button_data = Button(root,text="No File")
-button_data.place(height=30,width=300, x=150, y=0)
+button_data.place(height=30,width=210, x=130, y=0)
 button_file = Button(root,text="Load Data", command= LoadData)
 button_file.place(height=30,width=100, x=10, y=0)
 
+#Set the time scale
+time_type = [
+    's',
+    'µs'
+]
+#Hold the value that the user selects
+select_time_type = StringVar()
+select_time_type.set('µs')
+
+#Create the drop down menu and label
+Drop_time_type = OptionMenu(root,select_time_type,*time_type,command= TimeTypeChanges)
+Drop_time_type.config(width=20)
+Drop_time_type.place(height=25,width=45, x=415, y=32)
+Drop_time_type = Label(root, text = "Time:")
+Drop_time_type.place(height=30,width=35 , x=375, y=30)
+
+
 #Set up for the user to select the data type if it s g1 or g2
 dTypes = [
-    "g1",
+    "g1\u00b2",
     "g2"
 ]
 #Hold the value that the user selects
@@ -1446,7 +1527,9 @@ select_dtype.set("g2")
 #Create the drop down menu and label
 Drop_dtype = OptionMenu(root,select_dtype,*dTypes)
 Drop_dtype.config(width=20)
+Drop_dtype.place(height=25,width=50, x= 425 , y=3)
 Dtype_label = Label(root,text = "Data Type:")
+Dtype_label.place(height=25,width=65, x= 355, y=0)
 
 #Set up the wavelength entry
 Entry_wavelength = Entry(root)
@@ -1471,27 +1554,27 @@ label_refractive.place(height=25,width=110, x=175, y=35)
 
 #Set up for Viscosity Input
 Entry_viscosity = Entry(root)
-Entry_viscosity.place(height=25,width=110, x=340, y=60)
+Entry_viscosity.place(height=25,width=110, x=340, y=110)
 Entry_viscosity.insert(0,'0.001')
 Entry_viscosity.bind('<Key>',handle_wait)
 label_viscosity = Label(root,text="Viscosity (Pa*s)")
-label_viscosity.place(height=25,width=110, x=340, y=35)
+label_viscosity.place(height=25,width=110, x=340, y=85)
 
 #Set up for scattering Input
 Entry_scattering = Entry(root)
-Entry_scattering.place(height=25,width=110, x=90, y=110)
+Entry_scattering.place(height=25,width=110, x=10, y=110)
 Entry_scattering.insert(0,'90')
 Entry_scattering.bind('<Key>',handle_wait)
 label_scattering = Label(root,text="Scattering Angle ("+u"\N{DEGREE SIGN}"+')')
-label_scattering.place(height=25,width=130, x=90, y=85)
+label_scattering.place(height=25,width=130, x=10, y=85)
 
-#Set up for Temperat Input
+#Set up for Temperate Input
 Entry_temperant = Entry(root)
-Entry_temperant.place(height=25,width=110, x=255, y=110)
+Entry_temperant.place(height=25,width=110, x=175, y=110)
 Entry_temperant.insert(0,'25')
 Entry_temperant.bind('<Key>',handle_wait)
 label_temperant = Label(root,text = "Temperature ("+u"\N{DEGREE SIGN}"+'C)')
-label_temperant.place(height=25,width=110, x=255, y=85)
+label_temperant.place(height=25,width=110, x=175, y=85)
 
 #Button to export data fit data
 Button_export = Button(root,text = 'Export Fit',command = Export)
@@ -1500,7 +1583,6 @@ Button_export.place(height=25, width=110, x = 350,  y =260)
 #Button to export Params for Fits
 Button_exportParams = Button(root,text = 'Export Fit Parameters', command = ExportParams)
 Button_exportParams.place(height=25, width=140, x = 170,  y =260)
-
 
 #Set up for choosing fitting method
 
@@ -1527,7 +1609,6 @@ label_methods = Label(root, text = "Choose Fitting\nAlgorithum      ")
 label_methods.place(height=40,width=110, x=1, y=140)
 label_methods_colon = Label(root, text = ":")
 label_methods_colon.place(height=40,width=10, x=100, y=140)
-
 
 #Create the Run Button
 button_enter = Button(root, text="Run",padx=20,command= Run)
@@ -1623,7 +1704,7 @@ Figure_g2 = Figure(figsize=(5, 4),dpi=85)
 Plot_g2 = Figure_g2.add_subplot(1,15 , (1,14))
 Plot_g2.set_xscale('log')
 Plot_g2.plot(tau, g2, color='red')
-Plot_g2.set_title("G2")
+Plot_g2.set_title("Data")
 Plot_g2.set_xlabel("Times (s)")
 canvas_g2 = FigureCanvasTkAgg(Figure_g2, root)
 canvas_g2.get_tk_widget().place(height=400,width=500, x=510, y=50)
@@ -1648,13 +1729,13 @@ global Figure_prob,Plot_prob,canvas_prob
 Figure_prob = Figure(figsize=(5, 4),dpi=85)
 Plot_prob = Figure_prob.add_subplot(1, 1, 1)
 Plot_prob.plot(tau, g2, color='red')
-Plot_prob.set_title("Probability")
+Plot_prob.set_title("Probability (Intensity)")
 Plot_prob.set_xlabel("Particle Size (nm)")
 canvas_prob = FigureCanvasTkAgg(Figure_prob, root)
 canvas_prob.get_tk_widget().place(height=415,width=510, x=0, y=285)
 
 #Display the Copyright
-label_high = Label(root,text="(C) 2023 M. Salazar,H. Srivastav,A. Srivastava,S. Srivastava")
+label_high = Label(root,text="(C) 2023 M. Salazar, H. Srivastav, A. Srivastava, S. Srivastava")
 label_high.place(height=25,width=510, x=0, y=700)
 
 
