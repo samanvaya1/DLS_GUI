@@ -67,6 +67,6 @@ License](http://creativecommons.org/licenses/by/4.0/).
 
 References
 -------
-1. Salazar M, Srivastav H, Srivastava A, Srivastava S. A User-friendly Graphical User Interface for Dynamic Light Scattering Data Analysis. ChemRxiv. Cambridge: Cambridge Open Engage; 2023 [[Link](https://doi.org/10.26434/chemrxiv-2023-v9kt4)]
-2. Scotti AE, Liu W, Hyatt JS, Herman ES, Choi HS, Kim JW, Lyon LA, Gasser U, Fernandez-Nieves A. The CONTIN algorithm and its application to determine the size distribution of microgel suspensions. The Journal of chemical physics. 2015 Jun 21;142(23):234905 [[Link](https://aip.scitation.org/doi/abs/10.1063/1.4921686)]
+1. Salazar M, Srivastav H, Srivastava A, Srivastava S. A User-friendly Graphical User Interface for Dynamic Light Scattering Data Analysis. _Soft Matter_, 2023, **19**, 6535-6544 [[Link](https://doi.org/10.1039/D3SM00469D)]
+2. Scotti AE, Liu W, Hyatt JS, Herman ES, Choi HS, Kim JW, Lyon LA, Gasser U, Fernandez-Nieves A. The CONTIN algorithm and its application to determine the size distribution of microgel suspensions. _The Journal of Chemical Physics_, 2015, **142**(23), 234905 [[Link](https://aip.scitation.org/doi/abs/10.1063/1.4921686)]
 3. Berne BJ, Pecora R. Dynamic light scattering: with applications to chemistry, biology, and physics. Courier Corporation; 2000. [[Link](https://books.google.com/books?hl=en&lr=&id=vBB54ABhmuEC&oi=fnd&pg=PA1&dq=dynamic+light+scattering&ots=L7pGK2qksd&sig=Sp3ud4IpPO4jt1UrWoY8wqNpy_w)]
