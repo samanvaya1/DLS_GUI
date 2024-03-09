@@ -16,7 +16,7 @@ Authors: Matthew Salazar, Harsh Srivastav, Abhishek Srivastava, Samanvaya Srivas
 [Self-Assembly of Soft Materials Laboratory](https://sites.google.com/view/srivastava-lab), University of California, Los Angeles
 
 To cite DLS GUI in publications please use:
-> Salazar M, Srivastav H, Srivastava A, Srivastava S. A User-friendly Graphical User Interface for Dynamic Light Scattering Data Analysis. ChemRxiv. Cambridge: Cambridge Open Engage; 2023 https://doi.org/10.26434/chemrxiv-2023-v9kt4  
+> Salazar M, Srivastav H, Srivastava A, Srivastava S. A User-friendly Graphical User Interface for Dynamic Light Scattering Data Analysis. Soft Matter, 2023, 19, 6535-6544. https://doi.org/10.1039/D3SM00469D 
 
 DLS GUI Preview:  
 <img src="https://user-images.githubusercontent.com/24664516/240789627-b0fefd48-34e2-4d19-855d-383978a77883.png" alt="GUI_Mac" width=50% height=50%/>
