@@ -96,7 +96,7 @@ def Distrubution(mean,sigma,skew,kurt,min,max):
     x0 = np.concatenate((x0L,x0R))
 
     #Get the distribution data and normalize it to sum up to 1
-    pdf = extras.pdf_mvsk([mean,sigma,skew,kurt]) 
+    pdf = extras.pdf_mvsk([mean,sigma,skew,kurt])
     y0 = np.abs(pdf(x0))
     y0 = np.divide(y0,np.sum((y0)))
     return x0 , y0
@@ -182,6 +182,7 @@ def LoadData():
 #Multi-Angle code Requires a folder with only the textfiles from a multiangle experiment. This requires that the experiment be conducted in the same conditions as listed in teh main GUI
 #Need multiple data sets to ensure that Multiangle code is actually functional and somehow is broken?
 def MultiAngle():
+
     #Load Multiple Data Sets
     #Creates a second window to input the Multiangle Data
     AngleWindow =  Toplevel(root)
@@ -196,11 +197,12 @@ def MultiAngle():
         global NumFiles
         global filesMulti
         global File_Names_Long
+
         G2_Multi = dict()
         Tau_Multi = dict()
         count = 0
         Num = str(count)
-        Time = Drop_time_type.get()
+        Time = select_time_type.get()
         if(Time == "s"):
             TimeFactor = 1
         else:
@@ -215,6 +217,7 @@ def MultiAngle():
             filesMulti.remove('.DS_Store')
         NumFiles = len(filesMulti)
         File_Names_Long = []
+        print(NumFiles)
         #Loop through the files to gather the G2 and Tau data
         for index in range(NumFiles):
             button_data.configure(text=filesMulti[index])
@@ -286,11 +289,21 @@ def MultiAngle():
             Angle  = int(Entry_MultiAngle[0].get())
             #Baseline set up
             B = 0
-            length = len(g2_holder)
-            for index in range(20):
-                B = B + g2_holder[length-2-index]
-            B = B/20
+            index = 0
+            length = len(tau_holder)
+            # Go until lower limit is reached and record only the given data
+            count = len(tau) - 1
+            tau_low = tau_holder[length - 22]
+            tau_high = tau_holder[length - 2]
+            while (tau_holder[count] > tau_low):
+                if (tau_holder[count] < tau_high):
+                    B = g2_holder[count] + B
+                    index = index + 1
+                count = count - 1
+            B = B / index
+
             beta = (g2_holder[0] + g2_holder[1])/2
+
             g2Norm, normal, beta, g1_squared = Normalize_Check(tau_holder, g2_holder, B, beta)
             #g1_squared = g2Norm#np.divide(g2Norm, beta)
             n_pts = int(Entry_points.get())
@@ -320,7 +333,6 @@ def MultiAngle():
 
         elif (select_methods.get() == "REPES"):
             #Initial Conditions
-            # Initial Conditions
             g2_holder = G2_Multi['1']
             tau_holder = Tau_Multi['1']
             Angle = int(Entry_MultiAngle[0].get())
@@ -371,20 +383,22 @@ def MultiAngle():
                 color = '#00' + str(index) + '000'
                 label = 'Data Set ' + str(index)
             elif (select_methods.get() == "Quad Fit"):
-                g2Norm_holder = np.multiply(g2Norm_holder, beta_holder)
+
                 Fit_Param, Fit_data = DLS_quad_fit.DLS_quad_fit(tau_holder, g2Norm_holder, B_holder, beta_holder, initialGuess)
                 initialGuess = Fit_Param
             elif (select_methods.get() == 'Cubic Fit'):
-                g2Norm_holder = np.multiply(g2Norm_holder, beta_holder)
+
                 Fit_Param, Fit_data = DLS_cubic_fit.DLS_cubic_fit(tau_holder, g2Norm_holder, B_holder, beta_holder, initialGuess)
                 initialGuess = Fit_Param
             elif (select_methods.get() == 'Quartic Fit'):
-                g2Norm_holder = np.multiply(g2Norm_holder, beta_holder)
+                
                 Fit_Param, Fit_data = DLS_quartic_fit.DLS_quartic_fit(tau_holder, g2Norm_holder, B_holder, beta_holder, initialGuess)
                 initialGuess = Fit_Param
-            elif (select_methods.get() == 'Contin'or select_methods.get()=="Choose..."):
-                g1_squared_holder = g2Norm_holder
+            elif (select_methods.get() == 'Contin'or select_methods.get()=="Choose..." or select_methods.get() == "NNLS"):
+                g1_squared_holder = g1_squared
                 reg_param = float(Entry_regularization.get())
+                if(select_methods.get() == "NNLS"):
+                    reg_param = 0
                 n_pts = int(Entry_points.get())
                 if (select_dist_type.get() == 'Logarithmic'):
                     r_dist = np.logspace(np.log10(r_min), np.log10(r_max), n_pts)
@@ -400,35 +414,10 @@ def MultiAngle():
                 x = x / np.sum(x)
                 color = '#00' + str(index) + '000'
                 label = 'Data Set ' + str(index)
-            elif (select_methods.get() == "NNLS"):
-                g1_squared_holder = g2Norm_holder
-                reg_param = 0
-                n_pts = int(Entry_points.get())
-                if (select_dist_type.get() == 'Logarithmic'):
-                    r_dist = np.logspace(np.log10(r_min), np.log10(r_max), n_pts)
-                    Plot_prob.set_xscale('log')
-                    dist = 0
-                else:
-                    r_dist = np.linspace(r_min, r_max, n_pts)
-                    dist = 1
-                gamma = np.multiply(np.divide(1, r_dist), (
-                            16 * boltzman_con * temperature * np.pi * (refractive ** 2) * (
-                                (np.sin(np.deg2rad(Angle / 2))) ** 2) / (
-                                        6 * viscosity * wavelength * wavelength)) * 10 ** 9)
-                W = np.diag(np.ones(len(g1_squared)))
-                Fit_data, gamma, x = DLS_contin.DLS_contin(tau_holder, g1_squared_holder, gamma, reg_param, W, x0)
-                Fit_data = Fit_data*beta_holder
-                x0 = x
-                x = x / np.sum(x)
-                color = '#00' + str(index) + '000'
-                label = 'Data Set ' + str(index)
-                Plot_Prob(r_dist, x, color, label)
-                gamma_prob = x
 
             elif (select_methods.get() == "REPES"):
-                g1_squared_holder = g2Norm_holder
                 g1_squared_holder = [0 if i < 0 else i for i in g1_squared_holder]
-                g1 = g1_squared_holder#np.sqrt(g1_squared_holder)
+                g1 = np.sqrt(g1_squared_holder)
                 reg_param = float(Entry_regularization.get())
                 n_pts = int(Entry_points.get())
                 if (select_dist_type.get() == 'Logarithmic'):
@@ -451,7 +440,6 @@ def MultiAngle():
                 gamma_prob = x
 
             elif (select_methods.get() == "DYNALS"):
-                g1_squared = g2Norm_holder
                 g1_squared = [0 if i < 0 else i for i in g1_squared]
                 g1 = np.sqrt(g1_squared)
                 n_pts = int(Entry_points.get())
@@ -466,6 +454,7 @@ def MultiAngle():
                             16 * boltzman_con * temperature * np.pi * (refractive ** 2) * (
                                 (np.sin(np.deg2rad(Angle / 2))) ** 2) / (
                                         6 * viscosity * wavelength * wavelength)) * 10 ** 9)
+
                 #Fix the DYNALS initial guess bug
                 Fit_data, gamma, x = DLS_DYNALS.DLS_DYNALS(tau_holder, g1, gamma, x0)
                 Fit_data = beta_holder*(Fit_data**2)
@@ -520,7 +509,7 @@ def MultiAngle():
                 r_dist = np.divide(boltzman_con * temperature, np.multiply(6 * np.pi * viscosity, D_dist))
                 # If there is no value in min or max size to autofill a default value in. min is .01 times smaller and max is 100 times larger
                 Plot_Prob(r_dist, gamma_prob, color, label)
-            elif(select_methods.get()=='Contin' or select_methods.get()=="Choose..."):
+            elif(select_methods.get()=="Choose..."or select_methods.get()=="DYNALS" or select_methods.get()=="Contin" or select_methods.get()=="NNLS" or select_methods.get()=="REPES"):
                 Plot_Prob(r_dist,x,color,label)
                 gamma_prob = x
             # Plot the Normal Data Based on the model
@@ -1250,8 +1239,8 @@ def Plot_G2(xdata,ydata,color,labels):
     Plot_g2.autoscale()
 
     #Set up the rescaling of the y-axis
-    minX  = min(tau)*0.95
-    maxX  = max(tau)*1.05
+    minX  = min(xdata)*0.95
+    maxX  = max(xdata)*1.05
     Plot_g2.set_xlim([minX , maxX])
 
     #Set up the rescaling of the y-axis
