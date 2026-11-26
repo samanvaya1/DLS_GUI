@@ -39,12 +39,12 @@ To activate the virtual environment:
 
 >`source myenv/bin/activate` (Unix/Mac)
 
-This package requires `numpy`, `scipy` `matplotlib`, `cx-freeze`, `statsmodels`, and `tkinter` packages. Install these by invoking the `requirements.txt` file provided. Navigate to home directory and execute the following command:
+This package requires `numpy`, `scipy` `matplotlib`, `cx-freeze`, and `tkinter` packages. Install these by invoking the `requirements.txt` file provided. Navigate to home directory and execute the following command:
 
 >`pip install -r requirements.txt`
 
 We are now ready to compile the GUI. In the home directory, execute the following command:
->`python setup.py build_exe --excludes=matplotlib.tests,numpy.random._examples --no-compress` (Windows)
+>`python setup.py build_exe --no-compress` (Windows)
 
 >`python setup.py bdist_mac` (Mac)
 
