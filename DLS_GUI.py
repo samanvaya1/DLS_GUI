@@ -23,8 +23,6 @@ matplotlib.use("TkAgg")
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,NavigationToolbar2Tk)
 
-#Import Statistic packages for the Cumulant Methods
-import statsmodels.sandbox.distributions.extras as extras
 
 #Import numpy and math to help with the math
 import numpy as np
@@ -146,6 +144,17 @@ def Normalize_Check(tauLC,g2LC,B,beta):
         Normalized = 0
     return g2Norm , Normalized,beta,g1_squared
 
+#Gram-Charlier expansion of the normal distribution with given mean, variance, skewness and excess kurtosis
+#(same formula as statsmodels.sandbox.distributions.extras.pdf_mvsk, implemented here to avoid the statsmodels/pandas dependency)
+def Gram_Charlier_pdf(mean, variance, skew, kurt):
+    sig = np.sqrt(variance)
+    def pdffunc(x):
+        z = (np.asarray(x) - mean) / sig
+        he3 = z**3 - 3*z
+        he4 = z**4 - 6*z**2 + 3
+        return (1 + skew/6.0*he3 + kurt/24.0*he4) * np.exp(-z*z/2.0) / np.sqrt(2*np.pi) / sig
+    return pdffunc
+
 #Generate a modified boltzman distibution based on the coefficiients provided based of a Gram-Charlier expansion on a Gaussian distribution found on github
 def Distrubution(mean,sigma,skew,kurt,min,max):
     #This is done to ensure that the average is always included break the dist into two halfs meeting at the mean
@@ -166,7 +175,7 @@ def Distrubution(mean,sigma,skew,kurt,min,max):
 
     #Get the distribution data and normalize it to sum up to 1
     #pdf_mvsk expects [mean, variance, skewness, excess kurtosis]
-    pdf = extras.pdf_mvsk([mean,sigma**2,skew,kurt])
+    pdf = Gram_Charlier_pdf(mean,sigma**2,skew,kurt)
     y0 = np.abs(pdf(x0))
     y0 = np.divide(y0,np.sum((y0)))
     return x0 , y0
