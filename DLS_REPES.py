@@ -26,6 +26,7 @@ def DLS_REPES(t,g,Tau,reg_param,a0):
     A_fmin = []
     b_fmin = []
 
+    a0 = np.ravel(a0)
     test_fn = lambda x: error(A,x,g,alpha)
     bnds = optimize.Bounds(lb_fmin, ub_fmin, keep_feasible=True)
     a_opt = optimize.minimize(test_fn, a0, method='SLSQP', bounds=bnds,options={'ftol': 10 ** -14, 'maxiter': 1000000, 'disp': False})

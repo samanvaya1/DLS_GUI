@@ -3,7 +3,7 @@ import cx_Freeze
 from cx_Freeze import setup, Executable
 import sys
 
-packages = ['os', 'matplotlib', 'scipy', 'numpy']
+packages = ['os', 'matplotlib', 'scipy', 'numpy', 'statsmodels']
 executables = [cx_Freeze.Executable('DLS_GUI.py')]
 options = {'build_exe': {"includes": ['numpy', 'tkinter'],
                          'packages': packages,

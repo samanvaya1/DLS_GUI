@@ -40,7 +40,8 @@ def DLS_NNLS(tau,g1,gamma,alpha,W,x0):
     om = np.zeros(omCol)
 
     #Constraints for minimization
-    x0 = x0.transpose()
+    #scipy.optimize.minimize requires a 1D initial guess
+    x0 = np.ravel(x0)
     lb_fmin = np.zeros(len(x0))
     ub_fmin = np.inf*np.ones(len(x0))
     non_lin  = lambda x: integral_con(x)
